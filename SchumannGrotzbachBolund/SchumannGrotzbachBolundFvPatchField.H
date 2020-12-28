@@ -58,11 +58,17 @@ private:
 
     // Private data
 
+        // -Type of application of Monin-Obuhkov scaling, local or nonlocal
+        word averageType_;
+
         //- Von Karman constant
         scalar kappa_;
 
-        //- Roughness height
-        scalarField z0_;
+        //- Constant for unstable Monin-Obuhkov scaling law
+        scalar betaM_;
+
+        // -Constant for stable Monin-Obuhkov scaling law
+        scalar gammaM_;
 
         //- Sea roughness height
         scalar z0Sea_;
@@ -73,14 +79,8 @@ private:
         // reference height of the terrain
         scalar refHeight_;
 
-        //- Constant for unstable Monin-Obuhkov scaling law
-        scalar betaM_;
-
-        // -Constant for stable Monin-Obuhkov scaling law
-        scalar gammaM_;
-
-        // -Type of application of Monin-Obuhkov scaling, local or nonlocal
-        word averageType_;
+        //- Roughness height
+        scalarField z0_;
 
     // Private member functions
        

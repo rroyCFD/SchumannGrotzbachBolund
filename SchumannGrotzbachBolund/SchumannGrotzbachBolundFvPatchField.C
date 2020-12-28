@@ -46,14 +46,14 @@ SchumannGrotzbachBolundFvPatchField
 )
 :
     fixedValueFvPatchSymmTensorField(p, iF),
+    averageType_("local"),
     kappa_(0.40),
-    z0_(p.size(), 0.01),
+    betaM_(15.0),
+    gammaM_(4.7),
     z0Sea_(0.0006),
     z0Terrain_(0.015),
     refHeight_(0.75),
-    betaM_(15.0),
-    gammaM_(4.7),
-    averageType_("local")
+    z0_(p.size(), 0.01)
 {
     getRoughnessHeight(z0_);
 }
@@ -69,14 +69,14 @@ SchumannGrotzbachBolundFvPatchField
 )
 :
     fixedValueFvPatchSymmTensorField(ptf, p, iF, mapper),
+    averageType_(ptf.averageType_),
     kappa_(ptf.kappa_),
-    z0_(ptf.z0_, mapper),
+    betaM_(ptf.betaM_),
+    gammaM_(ptf.gammaM_),
     z0Sea_(ptf.z0Sea_),
     z0Terrain_(ptf.z0Terrain_),
     refHeight_(ptf.refHeight_),
-    betaM_(ptf.betaM_),
-    gammaM_(ptf.gammaM_),
-    averageType_(ptf.averageType_)
+    z0_(ptf.z0_, mapper)
 {
     getRoughnessHeight(z0_);
 }
@@ -91,14 +91,14 @@ SchumannGrotzbachBolundFvPatchField
 )
 :
     fixedValueFvPatchSymmTensorField(p, iF, dict),
+    averageType_(dict.lookupOrDefault<word>("averageType","local")),
     kappa_(readScalar(dict.lookup("kappa"))),
-    z0_("z0", dict, p.size()),
+    betaM_(readScalar(dict.lookup("betaM"))),
+    gammaM_(readScalar(dict.lookup("gammaM"))),
     z0Sea_(readScalar(dict.lookup("z0Sea"))),
     z0Terrain_(readScalar(dict.lookup("z0Terrain"))),
     refHeight_(readScalar(dict.lookup("refHeight"))),
-    betaM_(readScalar(dict.lookup("betaM"))),
-    gammaM_(readScalar(dict.lookup("gammaM"))),
-    averageType_(dict.lookupOrDefault<word>("averageType","local"))
+    z0_("z0", dict, p.size())
 {
     getRoughnessHeight(z0_);
 }
@@ -111,14 +111,14 @@ SchumannGrotzbachBolundFvPatchField
 )
 :
     fixedValueFvPatchSymmTensorField(wfpf),
+    averageType_(wfpf.averageType_),
     kappa_(wfpf.kappa_),
-    z0_(wfpf.z0_),
+    betaM_(wfpf.betaM_),
+    gammaM_(wfpf.gammaM_),
     z0Sea_(wfpf.z0Sea_),
     z0Terrain_(wfpf.z0Terrain_),
     refHeight_(wfpf.refHeight_),
-    betaM_(wfpf.betaM_),
-    gammaM_(wfpf.gammaM_),
-    averageType_(wfpf.averageType_)
+    z0_(wfpf.z0_)
 {
     getRoughnessHeight(z0_);
 }
@@ -132,14 +132,14 @@ SchumannGrotzbachBolundFvPatchField
 )
 :
     fixedValueFvPatchSymmTensorField(wfpf, iF),
+    averageType_(wfpf.averageType_),
     kappa_(wfpf.kappa_),
-    z0_(wfpf.z0_),
+    betaM_(wfpf.betaM_),
+    gammaM_(wfpf.gammaM_),
     z0Sea_(wfpf.z0Sea_),
     z0Terrain_(wfpf.z0Terrain_),
     refHeight_(wfpf.refHeight_),
-    betaM_(wfpf.betaM_),
-    gammaM_(wfpf.gammaM_),
-    averageType_(wfpf.averageType_)
+    z0_(wfpf.z0_)
 {
     getRoughnessHeight(z0_);
 }
@@ -202,13 +202,13 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
     scalar z0Mean = gSum(z0_ * area)/areaTotal;
 
     //    Get the reference temperature
-//  const singlePhaseTransportModel& laminarTransport = db().lookupObject<singlePhaseTransportModel>("transportProperties");
-//  const dimensionedScalar& TRefDim = laminarTransport.lookup("TRef");
+    // const singlePhaseTransportModel& laminarTransport = db().lookupObject<singlePhaseTransportModel>("transportProperties");
+    // const dimensionedScalar& TRefDim = laminarTransport.lookup("TRef");
     const dictionary& transportProperties = db().lookupObject<dictionary>("transportProperties");
     dimensionedScalar TRefDim = transportProperties.lookup("TRef");
     scalar TRef = TRefDim.value();
-  //scalar TRef = readScalar(transportProperties.lookup("TRef"));
-  //Info << "TRef = " << TRef << endl;
+    //scalar TRef = readScalar(transportProperties.lookup("TRef"));
+    //Info << "TRef = " << TRef << endl;
 
 
     vectorField loc = patch().Cf();
@@ -259,14 +259,9 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
 
     //    Get magnitudes and means of the terrain-local velocity
     scalarField UParallelPMag = mag(UParallelP);
-  //scalar UParallelPMagMean = gSum(UParallelPMag * area) / areaTotal;
+    //scalar UParallelPMagMean = gSum(UParallelPMag * area) / areaTotal;
     vector UParallelPMean = gSum(UParallelP * area) / areaTotal;
     scalar UParallelPMeanMag = mag(UParallelPMean);
-
-
-
-
-
 
     // ---Get the boundary temperature flux
     const fvPatchField<vector>& qwVec = patch().lookupPatchField<volVectorField, vector>("qwall");
@@ -274,9 +269,6 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
     scalar qwMean = gSum(qw * area)/areaTotal;
     //Info << "qw = " << qw << tab
     //     << "qwMean = " << qwMean << endl;
-
-
-
 
 
     // ---Compute the friction velocity, Obuhkov length, and non-dimensional shear
@@ -388,33 +380,31 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
         vector yP(vector::zero);
         vector zP(vector::zero);
         if (averageType_ == "planarAverage")
+        // Info << "planarAverage" << endl;
         {
-//            Info << "planarAverage" << endl;
             Rw[facei].xx() = 0.0;
-	    Rw[facei].xy() = 0.0;
-	  //RwP.xz() = -sqr(uStar[facei]) * (UParallelP[facei].x() / UParallelPMagMean);
-	    Rw[facei].xz() = -sqr(uStar[facei]) * (UParallel[facei].x() / max(UParallelMeanMag, 1.0E-5));
-	    Rw[facei].yy() = 0.0;
-	  //RwP.yz() = -sqr(uStar[facei]) * (UParallelP[facei].y() / UParallelPMagMean);
-	    Rw[facei].yz() = -sqr(uStar[facei]) * (UParallel[facei].y() / max(UParallelMeanMag, 1.0E-5));
-	    Rw[facei].zz() = 0.0;
+    	    Rw[facei].xy() = 0.0;
+    	    // RwP.xz() = -sqr(uStar[facei]) * (UParallelP[facei].x() / UParallelPMagMean);
+    	    Rw[facei].xz() = -sqr(uStar[facei]) * (UParallel[facei].x() / max(UParallelMeanMag, 1.0E-5));
+    	    Rw[facei].yy() = 0.0;
+    	    // RwP.yz() = -sqr(uStar[facei]) * (UParallelP[facei].y() / UParallelPMagMean);
+    	    Rw[facei].yz() = -sqr(uStar[facei]) * (UParallel[facei].y() / max(UParallelMeanMag, 1.0E-5));
+    	    Rw[facei].zz() = 0.0;
             
             // Get the magnitude of the surface stress vector
             RwMag[facei] = Foam::sqrt(Foam::sqr(Rw[facei].xz()) + Foam::sqr(Rw[facei].yz()));
         }
+        // Info << "local" << endl;
         else if (averageType_ == "local")
         {
-  //          Info << "local" << endl;
             RwP.xx() = 0.0;
             RwP.xy() = 0.0;
             RwP.xz() = -sqr(uStar[facei]) * (UParallelP[facei].x() / max(UParallelPMag[facei], 1.0E-5));
             RwP.yy() = 0.0;
             RwP.yz() = -sqr(uStar[facei]) * (UParallelP[facei].y() / max(UParallelPMag[facei], 1.0E-5));
             RwP.zz() = 0.0;
-        
 
             // Transform from the terrain-local into the Cartesian system
-
             // z' is equal to the surface normal pointing inward (negative because
             // OpenFOAM normal is outward)
             zP = -normal[facei];
@@ -929,13 +919,14 @@ void  SchumannGrotzbachBolundFvPatchField::uStarEvaluate
 void SchumannGrotzbachBolundFvPatchField::write(Ostream& os) const
 {
     fvPatchField<symmTensor>::write(os);
+    os.writeKeyword("averageType") << averageType_ << token::END_STATEMENT << nl;
     os.writeKeyword("kappa") << kappa_ << token::END_STATEMENT << nl;
-    z0_.writeEntry("z0", os);
+    os.writeKeyword("betaM") << betaM_ << token::END_STATEMENT << nl;
+    os.writeKeyword("gammaM") << gammaM_ << token::END_STATEMENT << nl;
     os.writeKeyword("z0Sea") << z0Sea_ << token::END_STATEMENT << nl;
     os.writeKeyword("z0Terrain") << z0Terrain_ << token::END_STATEMENT << nl;
     os.writeKeyword("refHeight") << refHeight_ << token::END_STATEMENT << nl;
-    os.writeKeyword("gammaM") << gammaM_ << token::END_STATEMENT << nl;
-    os.writeKeyword("averageType") << averageType_ << token::END_STATEMENT << nl;
+    z0_.writeEntry("z0", os);
     writeEntry("value", os);
 }
 
