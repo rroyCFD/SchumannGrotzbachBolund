@@ -82,6 +82,8 @@ private:
         //- Roughness height
         scalarField z0_;
 
+        bool neutralABL_;
+        
     // Private member functions
        
         // -Function to transform vectors from Cartesian into terrain-local
@@ -127,6 +129,7 @@ private:
         );  
 
         void getRoughnessHeight(scalarField& z0_);
+        void checkABLtype();
 public:
 
     //- Runtime type information

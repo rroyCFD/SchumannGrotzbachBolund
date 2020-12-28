@@ -56,6 +56,7 @@ SchumannGrotzbachBolundFvPatchField
     z0_(p.size(), 0.01)
 {
     getRoughnessHeight(z0_);
+    checkABLtype();
 }
 
 
@@ -79,6 +80,7 @@ SchumannGrotzbachBolundFvPatchField
     z0_(ptf.z0_, mapper)
 {
     getRoughnessHeight(z0_);
+    checkABLtype();
 }
 
 
@@ -101,6 +103,7 @@ SchumannGrotzbachBolundFvPatchField
     z0_("z0", dict, p.size())
 {
     getRoughnessHeight(z0_);
+    checkABLtype();
 }
 
 
@@ -121,6 +124,7 @@ SchumannGrotzbachBolundFvPatchField
     z0_(wfpf.z0_)
 {
     getRoughnessHeight(z0_);
+    checkABLtype();
 }
 
 
@@ -142,6 +146,7 @@ SchumannGrotzbachBolundFvPatchField
     z0_(wfpf.z0_)
 {
     getRoughnessHeight(z0_);
+    checkABLtype();
 }
 
 
@@ -169,6 +174,26 @@ void SchumannGrotzbachBolundFvPatchField::getRoughnessHeight(scalarField& z0_)
     }
     Info << terrainFaceCount << " faces are in terrain from " 
         << patch().size() << " patch faces " << endl;
+    return;
+}
+
+
+void SchumannGrotzbachBolundFvPatchField::checkABLtype()
+{
+    IOobject qwallHeader
+    (
+        "qwall",
+        patch().boundaryMesh().mesh().time().timeName(),
+        patch().boundaryMesh().mesh(),
+        IOobject::NO_READ
+    );
+
+    if(qwallHeader.typeHeaderOk<volVectorField>(true))
+        neutralABL_ = false;
+    else 
+        neutralABL_ = true;
+
+    Info << " neutral ABL: " << neutralABL_ << endl;
     return;
 }
 
@@ -263,10 +288,18 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
     vector UParallelPMean = gSum(UParallelP * area) / areaTotal;
     scalar UParallelPMeanMag = mag(UParallelPMean);
 
-    // ---Get the boundary temperature flux
-    const fvPatchField<vector>& qwVec = patch().lookupPatchField<volVectorField, vector>("qwall");
-    scalarField qw = qwVec & normal;
-    scalar qwMean = gSum(qw * area)/areaTotal;
+    
+   // ---Get the boundary temperature flux
+    scalarField qw(patch().size(), 0.0);
+
+    if(!neutralABL_)
+    {
+        const fvPatchField<vector>& qwVec = patch().lookupPatchField<volVectorField, vector>("qwall");
+        qw = qwVec & normal;
+    }
+    // const fvPatchField<vector>& qwVec = patch().lookupPatchField<volVectorField, vector>("qwall");
+    // scalarField qw = qwVec & normal;
+    // scalar qwMean = gSum(qw * area)/areaTotal;
     //Info << "qw = " << qw << tab
     //     << "qwMean = " << qwMean << endl;
 
@@ -292,6 +325,8 @@ void SchumannGrotzbachBolundFvPatchField::evaluate
 //          Info << "planarAverage" << endl;
             if(facei == 0)
             {
+                scalar qwMean = gSum(qw * area)/areaTotal;
+                
                 uStarEvaluate
                 (
                     uStar[facei],
